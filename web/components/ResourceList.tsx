@@ -17,6 +17,15 @@ interface RankedResource extends Resource {
 
 const VOTED_KEY = "colo_voted";
 
+function isValidUrl(raw: string): boolean {
+  try {
+    new URL(raw.startsWith("http") ? raw : `https://${raw}`);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function getLocalVoted(): Record<string, "up" | "down"> {
   if (typeof window === "undefined") return {};
   try {
@@ -300,25 +309,43 @@ export default function ResourceList({ initialResources, initialVotes }: Props) 
                     </a>
                   )}
                   {r.web && r.web !== "not found" && (
-                    <a
-                      href={r.web.startsWith("http") ? r.web : `https://${r.web}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        color: "var(--sky-light)",
-                        textDecoration: "none",
-                        fontWeight: 600,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "0.25rem",
-                        maxWidth: 260,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      🌐 Website
-                    </a>
+                    isValidUrl(r.web) ? (
+                      <a
+                        href={r.web.startsWith("http") ? r.web : `https://${r.web}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          color: "var(--sky-light)",
+                          textDecoration: "none",
+                          fontWeight: 600,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.25rem",
+                          maxWidth: 260,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        🌐 Website
+                      </a>
+                    ) : (
+                      <span
+                        style={{
+                          color: "var(--text-muted)",
+                          fontWeight: 600,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.25rem",
+                          maxWidth: 260,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        🌐 {r.web}
+                      </span>
+                    )
                   )}
                   {r.email && r.email !== "not found" && (
                     <a
