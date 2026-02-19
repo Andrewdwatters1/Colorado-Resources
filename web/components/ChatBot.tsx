@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import RatingPrompt from "./RatingPrompt";
 
 interface Message {
   role: "user" | "assistant";
@@ -300,53 +301,63 @@ export default function ChatBot() {
           }}
         >
           {messages.map((msg, i) => (
-            <div
-              key={i}
-              className="fade-in"
-              style={{
-                display: "flex",
-                flexDirection: msg.role === "user" ? "row-reverse" : "row",
-                alignItems: "flex-end",
-                gap: "0.5rem",
-              }}
-            >
-              {/* Bot avatar */}
-              {msg.role === "assistant" && (
-                <div
-                  style={{
-                    width: 30,
-                    height: 30,
-                    borderRadius: "50%",
-                    background: "var(--sky)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "0.85rem",
-                    flexShrink: 0,
-                  }}
-                >
-                  🏔️
-                </div>
-              )}
+            <div key={i} className="fade-in">
               <div
-                className={msg.role === "assistant" ? "bot-message" : ""}
                 style={{
-                  maxWidth: "75%",
-                  padding: "0.7rem 1rem",
-                  borderRadius:
-                    msg.role === "user"
-                      ? "1.1rem 1.1rem 0.25rem 1.1rem"
-                      : "1.1rem 1.1rem 1.1rem 0.25rem",
-                  background:
-                    msg.role === "user" ? "var(--sky)" : "#f0f4f9",
-                  color: msg.role === "user" ? "#fff" : "var(--text)",
-                  fontSize: "0.9rem",
-                  lineHeight: 1.55,
-                  wordBreak: "break-word",
+                  display: "flex",
+                  flexDirection: msg.role === "user" ? "row-reverse" : "row",
+                  alignItems: "flex-end",
+                  gap: "0.5rem",
                 }}
               >
-                {renderContent(msg.content)}
+                {/* Bot avatar */}
+                {msg.role === "assistant" && (
+                  <div
+                    style={{
+                      width: 30,
+                      height: 30,
+                      borderRadius: "50%",
+                      background: "var(--sky)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "0.85rem",
+                      flexShrink: 0,
+                    }}
+                  >
+                    🏔️
+                  </div>
+                )}
+                <div
+                  className={msg.role === "assistant" ? "bot-message" : ""}
+                  style={{
+                    maxWidth: "75%",
+                    padding: "0.7rem 1rem",
+                    borderRadius:
+                      msg.role === "user"
+                        ? "1.1rem 1.1rem 0.25rem 1.1rem"
+                        : "1.1rem 1.1rem 1.1rem 0.25rem",
+                    background:
+                      msg.role === "user" ? "var(--sky)" : "#f0f4f9",
+                    color: msg.role === "user" ? "#fff" : "var(--text)",
+                    fontSize: "0.9rem",
+                    lineHeight: 1.55,
+                    wordBreak: "break-word",
+                  }}
+                >
+                  {renderContent(msg.content)}
+                </div>
               </div>
+              {/* Rating prompt — only for AI responses that follow a user message */}
+              {msg.role === "assistant" && i > 0 && !loading && (
+                <div style={{ paddingLeft: "calc(30px + 0.5rem)" }}>
+                  <RatingPrompt
+                    messageIndex={i}
+                    messageContent={msg.content}
+                    conversationSnapshot={messages.slice(0, i + 1)}
+                  />
+                </div>
+              )}
             </div>
           ))}
 
