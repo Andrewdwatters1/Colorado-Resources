@@ -4,17 +4,24 @@
  * Stores a user's helpfulness rating for an individual Colo response,
  * paired with the full conversation snapshot at the time of rating.
  *
- * Data is stored in Vercel KV:
- *   Hash   "conversation_ratings"  →  field = uuid, value = ConversationRating
- *   ZSet   "conversation_ts"       →  member = uuid, score = timestamp (ms)
+ * Data is stored in Upstash Redis:
+ *   Hash  "conversation_ratings"  →  field = uuid, value = ConversationRating
+ *   ZSet  "conversation_ts"       →  member = uuid, score = timestamp (ms)
  *
- * To retrieve all rated conversations for analysis:
- *   const ids = await kv.zrange("conversation_ts", 0, -1);
- *   const ratings = await Promise.all(ids.map(id => kv.hget("conversation_ratings", id)));
+ * To retrieve all rated conversations for analysis (newest first):
+ *   const ids = await redis.zrange("conversation_ts", 0, -1, { rev: true });
+ *   const records = await Promise.all(
+ *     ids.map(id => redis.hget("conversation_ratings", id))
+ *   );
  */
 
 import { NextRequest } from "next/server";
-import { kv } from "@vercel/kv";
+import { Redis } from "@upstash/redis";
+
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+});
 
 export interface ConversationRating {
   id: string;
@@ -66,8 +73,8 @@ export async function POST(req: NextRequest) {
     };
 
     await Promise.all([
-      kv.hset(RATINGS_HASH, { [id]: record }),
-      kv.zadd(RATINGS_TS_ZSET, { score: timestamp, member: id }),
+      redis.hset(RATINGS_HASH, { [id]: record }),
+      redis.zadd(RATINGS_TS_ZSET, { score: timestamp, member: id }),
     ]);
 
     return Response.json({ ok: true, id });
