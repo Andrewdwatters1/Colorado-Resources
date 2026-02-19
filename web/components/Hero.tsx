@@ -1,6 +1,10 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 export default function Hero() {
+  const router = useRouter();
+
   const scrollToChat = () => {
     document.getElementById("chat")?.scrollIntoView({ behavior: "smooth" });
   };
@@ -129,6 +133,32 @@ export default function Hero() {
             flexWrap: "wrap",
           }}
         >
+          <button
+            onClick={() => router.push("/resources")}
+            style={{
+              padding: "0.8rem 2rem",
+              borderRadius: "999px",
+              border: "1.5px solid rgba(255,255,255,0.55)",
+              background: "rgba(255,255,255,0.12)",
+              color: "#fff",
+              fontSize: "1rem",
+              fontWeight: 600,
+              cursor: "pointer",
+              fontFamily: "inherit",
+              transition: "background 0.15s, border-color 0.15s",
+              backdropFilter: "blur(4px)",
+            }}
+            onMouseEnter={(e) => {
+              (e.target as HTMLButtonElement).style.background = "rgba(255,255,255,0.22)";
+              (e.target as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.75)";
+            }}
+            onMouseLeave={(e) => {
+              (e.target as HTMLButtonElement).style.background = "rgba(255,255,255,0.12)";
+              (e.target as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.55)";
+            }}
+          >
+            Browse Resources
+          </button>
           <button
             onClick={scrollToChat}
             style={{
