@@ -54,7 +54,7 @@ function mergeRanks(resources: Resource[], votes: VoteMap): RankedResource[] {
     })
     .sort((a, b) => {
       if (b.rank !== a.rank) return b.rank - a.rank;
-      return a.name.localeCompare(b.name);
+      return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
     });
 }
 

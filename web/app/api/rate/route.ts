@@ -18,10 +18,13 @@
 import { NextRequest } from "next/server";
 import { Redis } from "@upstash/redis";
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-});
+const redis =
+  process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
+    ? new Redis({
+        url: process.env.UPSTASH_REDIS_REST_URL,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN,
+      })
+    : null;
 
 export interface ConversationRating {
   id: string;
@@ -72,10 +75,12 @@ export async function POST(req: NextRequest) {
       conversationSnapshot,
     };
 
-    await Promise.all([
-      redis.hset(RATINGS_HASH, { [id]: record }),
-      redis.zadd(RATINGS_TS_ZSET, { score: timestamp, member: id }),
-    ]);
+    if (redis) {
+      await Promise.all([
+        redis.hset(RATINGS_HASH, { [id]: record }),
+        redis.zadd(RATINGS_TS_ZSET, { score: timestamp, member: id }),
+      ]);
+    }
 
     return Response.json({ ok: true, id });
   } catch (err) {
