@@ -1,21 +1,17 @@
 /**
- * voteStore.ts — file-based vote persistence.
+ * voteStore.ts — Vercel KV (Upstash Redis) backed vote persistence.
  *
- * Reads and writes data/votes.json (relative to the repo root).
- * Swap this file's implementation for Vercel KV (or any KV store) when
- * moving to a serverless deployment:
+ * Setup:
+ *  1. Enable a KV store in your Vercel project dashboard (Storage → KV)
+ *  2. Run `vercel env pull .env.local` to get credentials locally
+ *  3. The required env vars (set automatically by Vercel):
+ *       KV_REST_API_URL, KV_REST_API_TOKEN, KV_REST_API_READ_ONLY_TOKEN
  *
- *   import { kv } from "@vercel/kv";
- *   export async function getVotes() { return await kv.hgetall("votes") ?? {}; }
- *   export async function castVote(name, dir) {
- *     const field = `${name}:${dir}`;
- *     await kv.hincrby("votes", field, 1);
- *     return getVotes();
- *   }
+ * Data layout in Redis:
+ *  Hash  "resource_votes"  →  field = resourceName, value = { up: N, down: M }
  */
 
-import fs from "fs";
-import path from "path";
+import { kv } from "@vercel/kv";
 
 export type VoteDirection = "up" | "down";
 
@@ -26,33 +22,27 @@ export interface ResourceVotes {
 
 export type VoteMap = Record<string, ResourceVotes>;
 
-const VOTES_PATH = path.join(process.cwd(), "..", "data", "votes.json");
+const HASH_KEY = "resource_votes";
 
-function readVotes(): VoteMap {
-  try {
-    const raw = fs.readFileSync(VOTES_PATH, "utf-8");
-    return JSON.parse(raw) as VoteMap;
-  } catch {
-    return {};
-  }
+export async function getVotes(): Promise<VoteMap> {
+  const raw = await kv.hgetall<Record<string, ResourceVotes>>(HASH_KEY);
+  return raw ?? {};
 }
 
-function writeVotes(votes: VoteMap): void {
-  fs.writeFileSync(VOTES_PATH, JSON.stringify(votes, null, 2), "utf-8");
-}
+export async function castVote(
+  resourceName: string,
+  direction: VoteDirection
+): Promise<VoteMap> {
+  const current =
+    (await kv.hget<ResourceVotes>(HASH_KEY, resourceName)) ?? { up: 0, down: 0 };
 
-export function getVotes(): VoteMap {
-  return readVotes();
-}
+  const updated: ResourceVotes = {
+    up: current.up + (direction === "up" ? 1 : 0),
+    down: current.down + (direction === "down" ? 1 : 0),
+  };
 
-export function castVote(resourceName: string, direction: VoteDirection): VoteMap {
-  const votes = readVotes();
-  if (!votes[resourceName]) {
-    votes[resourceName] = { up: 0, down: 0 };
-  }
-  votes[resourceName][direction] += 1;
-  writeVotes(votes);
-  return votes;
+  await kv.hset(HASH_KEY, { [resourceName]: updated });
+  return getVotes();
 }
 
 export function getRank(votes: VoteMap, resourceName: string): number {

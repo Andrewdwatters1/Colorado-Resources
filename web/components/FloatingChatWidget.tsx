@@ -1,11 +1,5 @@
 "use client";
 
-// TODO (future): After each assistant response, show a helpfulness rating widget
-// (1–10 scale) that the user can optionally fill out. Store ratings alongside
-// the conversation transcript. Use accumulated ratings + conversations over time
-// to evaluate and improve bot quality (e.g., fine-tuning, prompt iteration,
-// system prompt adjustments). Low-rated responses flag conversations for review.
-
 import {
   useState,
   useRef,
@@ -14,6 +8,7 @@ import {
   createContext,
   useContext,
 } from "react";
+import RatingPrompt from "./RatingPrompt";
 
 // ---------------------------------------------------------------------------
 // Shared conversation context so messages persist across /resources/* pages
@@ -58,7 +53,7 @@ function useChatContext() {
 }
 
 // ---------------------------------------------------------------------------
-// Markdown-lite renderer (shared with main ChatBot)
+// Markdown-lite renderer
 // ---------------------------------------------------------------------------
 function renderContent(content: string) {
   const lines = content.split("\n");
@@ -199,6 +194,8 @@ export default function FloatingChatWidget() {
   };
 
   const unreadCount = open ? 0 : messages.length - 1;
+  // Avatar width + gap → indent rating under the message bubble
+  const RATING_INDENT = "calc(26px + 0.4rem)";
 
   return (
     <>
@@ -264,7 +261,7 @@ export default function FloatingChatWidget() {
                 Colorado Resource Guide
               </div>
             </div>
-            {/* Start over button */}
+            {/* Start over */}
             <button
               onClick={resetChat}
               title="Start over"
@@ -292,7 +289,7 @@ export default function FloatingChatWidget() {
             >
               ↺ Start over
             </button>
-            {/* Close button */}
+            {/* Close */}
             <button
               onClick={() => setOpen(false)}
               aria-label="Close chat"
@@ -338,51 +335,64 @@ export default function FloatingChatWidget() {
             }}
           >
             {messages.map((msg, i) => (
-              <div
-                key={i}
-                className="fade-in"
-                style={{
-                  display: "flex",
-                  flexDirection: msg.role === "user" ? "row-reverse" : "row",
-                  alignItems: "flex-end",
-                  gap: "0.4rem",
-                }}
-              >
-                {msg.role === "assistant" && (
-                  <div
-                    style={{
-                      width: 26,
-                      height: 26,
-                      borderRadius: "50%",
-                      background: "var(--sky)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: "0.75rem",
-                      flexShrink: 0,
-                    }}
-                  >
-                    🏔️
-                  </div>
-                )}
+              <div key={i} className="fade-in">
+                {/* Message row */}
                 <div
                   style={{
-                    maxWidth: "78%",
-                    padding: "0.55rem 0.8rem",
-                    borderRadius:
-                      msg.role === "user"
-                        ? "1rem 1rem 0.2rem 1rem"
-                        : "1rem 1rem 1rem 0.2rem",
-                    background:
-                      msg.role === "user" ? "var(--sky)" : "#f0f4f9",
-                    color: msg.role === "user" ? "#fff" : "var(--text)",
-                    fontSize: "0.83rem",
-                    lineHeight: 1.5,
-                    wordBreak: "break-word",
+                    display: "flex",
+                    flexDirection: msg.role === "user" ? "row-reverse" : "row",
+                    alignItems: "flex-end",
+                    gap: "0.4rem",
                   }}
                 >
-                  {renderContent(msg.content)}
+                  {msg.role === "assistant" && (
+                    <div
+                      style={{
+                        width: 26,
+                        height: 26,
+                        borderRadius: "50%",
+                        background: "var(--sky)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "0.75rem",
+                        flexShrink: 0,
+                      }}
+                    >
+                      🏔️
+                    </div>
+                  )}
+                  <div
+                    style={{
+                      maxWidth: "78%",
+                      padding: "0.55rem 0.8rem",
+                      borderRadius:
+                        msg.role === "user"
+                          ? "1rem 1rem 0.2rem 1rem"
+                          : "1rem 1rem 1rem 0.2rem",
+                      background:
+                        msg.role === "user" ? "var(--sky)" : "#f0f4f9",
+                      color: msg.role === "user" ? "#fff" : "var(--text)",
+                      fontSize: "0.83rem",
+                      lineHeight: 1.5,
+                      wordBreak: "break-word",
+                    }}
+                  >
+                    {renderContent(msg.content)}
+                  </div>
                 </div>
+
+                {/* Rating prompt — only for AI responses that follow a user message */}
+                {msg.role === "assistant" && i > 0 && !loading && (
+                  <div style={{ paddingLeft: RATING_INDENT }}>
+                    <RatingPrompt
+                      messageIndex={i}
+                      messageContent={msg.content}
+                      conversationSnapshot={messages.slice(0, i + 1)}
+                      compact
+                    />
+                  </div>
+                )}
               </div>
             ))}
 
@@ -507,12 +517,8 @@ export default function FloatingChatWidget() {
                 transition: "border-color 0.15s",
                 overflowY: "hidden",
               }}
-              onFocus={(e) =>
-                (e.target.style.borderColor = "var(--sky-light)")
-              }
-              onBlur={(e) =>
-                (e.target.style.borderColor = "var(--border)")
-              }
+              onFocus={(e) => (e.target.style.borderColor = "var(--sky-light)")}
+              onBlur={(e) => (e.target.style.borderColor = "var(--border)")}
             />
             <button
               onClick={() => sendMessage(input)}
@@ -576,7 +582,6 @@ export default function FloatingChatWidget() {
         }}
       >
         {open ? "×" : "🏔️"}
-        {/* Unread badge */}
         {!open && unreadCount > 0 && (
           <span
             style={{

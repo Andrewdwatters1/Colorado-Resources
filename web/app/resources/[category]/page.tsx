@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getCategoryBySlug, CATEGORIES } from "@/lib/categories";
+import { getCategoryBySlug } from "@/lib/categories";
 import { getResourcesByCategory } from "@/lib/loadResources";
 import { getVotes } from "@/lib/voteStore";
 import ResourceList from "@/components/ResourceList";
@@ -9,10 +9,8 @@ interface Props {
   params: Promise<{ category: string }>;
 }
 
-// Let Next.js pre-generate all category pages at build time
-export function generateStaticParams() {
-  return CATEGORIES.map((cat) => ({ category: cat.slug }));
-}
+// Dynamic rendering — votes are fetched live from KV on each request
+export const dynamic = "force-dynamic";
 
 export default async function CategoryPage({ params }: Props) {
   const { category: slug } = await params;
@@ -20,7 +18,7 @@ export default async function CategoryPage({ params }: Props) {
   if (!cat) notFound();
 
   const resources = getResourcesByCategory(cat.tag);
-  const votes = getVotes();
+  const votes = await getVotes();
 
   return (
     <main style={{ minHeight: "100vh", background: "var(--snow)" }}>

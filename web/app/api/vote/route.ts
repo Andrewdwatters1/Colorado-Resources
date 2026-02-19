@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: "Invalid request" }, { status: 400 });
     }
 
-    const votes = castVote(resourceName, direction);
+    const votes = await castVote(resourceName, direction);
     return Response.json({ ok: true, votes });
   } catch (err) {
     console.error("Vote API error:", err);
