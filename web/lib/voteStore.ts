@@ -13,10 +13,13 @@
 
 import { Redis } from "@upstash/redis";
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-});
+const redis =
+  process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
+    ? new Redis({
+        url: process.env.UPSTASH_REDIS_REST_URL,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN,
+      })
+    : null;
 
 export type VoteDirection = "up" | "down";
 
@@ -30,6 +33,7 @@ export type VoteMap = Record<string, ResourceVotes>;
 const HASH_KEY = "resource_votes";
 
 export async function getVotes(): Promise<VoteMap> {
+  if (!redis) return {};
   const raw = await redis.hgetall<Record<string, ResourceVotes>>(HASH_KEY);
   return raw ?? {};
 }
@@ -38,6 +42,7 @@ export async function castVote(
   resourceName: string,
   direction: VoteDirection
 ): Promise<VoteMap> {
+  if (!redis) return {};
   const current =
     (await redis.hget<ResourceVotes>(HASH_KEY, resourceName)) ?? { up: 0, down: 0 };
 
