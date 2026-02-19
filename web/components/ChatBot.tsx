@@ -52,17 +52,28 @@ export default function ChatBot() {
       // Reset textarea height
       if (textareaRef.current) textareaRef.current.style.height = "auto";
 
-      try {
-        const res = await fetch("/api/chat", {
+      // Attempt the API call; on failure wait 1 s then retry once.
+      const fetchWithRetry = async (): Promise<Response> => {
+        const body = JSON.stringify({
+          messages: nextMessages.map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
+        });
+        const opts: RequestInit = {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            messages: nextMessages.map((m) => ({
-              role: m.role,
-              content: m.content,
-            })),
-          }),
-        });
+          body,
+        };
+        const first = await fetch("/api/chat", opts);
+        if (first.ok) return first;
+        // Wait 1 s then try exactly once more
+        await new Promise((r) => setTimeout(r, 1000));
+        return fetch("/api/chat", opts);
+      };
+
+      try {
+        const res = await fetchWithRetry();
 
         if (!res.ok) throw new Error(`API error ${res.status}`);
 
