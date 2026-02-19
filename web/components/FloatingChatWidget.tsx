@@ -8,7 +8,7 @@ import {
   createContext,
   useContext,
 } from "react";
-import RatingPrompt from "./RatingPrompt";
+import RatingPrompt, { isResourcefulResponse } from "./RatingPrompt";
 
 // ---------------------------------------------------------------------------
 // Shared conversation context so messages persist across /resources/* pages
@@ -100,6 +100,7 @@ export default function FloatingChatWidget() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [streamingContent, setStreamingContent] = useState("");
+  const [ratingTargetIdx, setRatingTargetIdx] = useState<number | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -162,6 +163,9 @@ export default function FloatingChatWidget() {
 
         setMessages((prev) => [...prev, { role: "assistant", content: full }]);
         setStreamingContent("");
+        if (isResourcefulResponse(full)) {
+          setRatingTargetIdx(nextMessages.length);
+        }
       } catch {
         setMessages((prev) => [
           ...prev,
@@ -382,8 +386,8 @@ export default function FloatingChatWidget() {
                   </div>
                 </div>
 
-                {/* Rating prompt — only for AI responses that follow a user message */}
-                {msg.role === "assistant" && i > 0 && !loading && (
+                {/* Rating prompt — shown once, below the latest qualifying response */}
+                {msg.role === "assistant" && i === ratingTargetIdx && !loading && (
                   <div style={{ paddingLeft: RATING_INDENT }}>
                     <RatingPrompt
                       messageIndex={i}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import RatingPrompt from "./RatingPrompt";
+import RatingPrompt, { isResourcefulResponse } from "./RatingPrompt";
 
 interface Message {
   role: "user" | "assistant";
@@ -27,6 +27,7 @@ export default function ChatBot() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [streamingContent, setStreamingContent] = useState("");
+  const [ratingTargetIdx, setRatingTargetIdx] = useState<number | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -96,6 +97,9 @@ export default function ChatBot() {
           { role: "assistant", content: full },
         ]);
         setStreamingContent("");
+        if (isResourcefulResponse(full)) {
+          setRatingTargetIdx(nextMessages.length);
+        }
       } catch {
         setMessages((prev) => [
           ...prev,
@@ -348,8 +352,8 @@ export default function ChatBot() {
                   {renderContent(msg.content)}
                 </div>
               </div>
-              {/* Rating prompt — only for AI responses that follow a user message */}
-              {msg.role === "assistant" && i > 0 && !loading && (
+              {/* Rating prompt — shown once, below the latest qualifying response */}
+              {msg.role === "assistant" && i === ratingTargetIdx && !loading && (
                 <div style={{ paddingLeft: "calc(30px + 0.5rem)" }}>
                   <RatingPrompt
                     messageIndex={i}
